@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oto Guesser - 音当てゲーム</title>
+    <!-- OGP Tags -->
+    <meta property="og:title" content="Oto Guesser">
+    <meta property="og:description" content="単音と2音。周波数と波形を当てる音当てゲーム！">
+    <meta property="og:url" content="https://yasusho.github.io/oto_guesser/">
+    <meta property="og:image" content="https://yasusho.github.io/oto_guesser/ogp.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts (Outfit & M PLUS 1p) - Exactly matching Color Guesser -->
@@ -55,27 +62,27 @@
 
         <!-- スプリット UI (TARGET vs YOURS) -->
         <div class="space-y-1.5">
-            <div class="flex justify-between px-2 text-[10px] font-bold text-slate-400 tracking-widest">
-                <span id="target-label-title">TARGET (お題の音)</span>
-                <span id="yours-label-title">YOURS (あなたの音)</span>
+            <div class="flex justify-between px-2 text-[10px] font-bold tracking-widest">
+                <span id="target-label-title" class="text-[#c83771]">TARGET (お題の音)</span>
+                <span id="yours-label-title" class="text-[#3771c8]">YOURS (あなたの音)</span>
             </div>
-            <div class="relative w-full aspect-[2/1] rounded-sm shadow-sm flex overflow-hidden ring-1 ring-slate-200 bg-slate-50">
+            <div class="relative w-full aspect-[2/1] rounded-sm shadow-sm flex overflow-hidden ring-1 ring-slate-200">
                 <!-- 左半分：お題の音コントロールボタン -->
-                <button id="btn-play-target" class="w-1/2 h-full bg-slate-50 hover:bg-slate-100 text-slate-800 flex flex-col items-center justify-center gap-2 transition duration-200 border-r border-slate-200 relative group cursor-pointer">
-                    <div class="w-11 h-11 rounded-full bg-sky-50 border border-sky-200/80 flex items-center justify-center group-hover:scale-105 transition shadow-xs">
-                        <i data-lucide="volume-2" class="w-5 h-5 text-sky-600"></i>
+                <button id="btn-play-target" class="w-1/2 h-full bg-[#c83771] hover:bg-[#b42d62] text-white flex flex-col items-center justify-center gap-2 transition duration-200 relative group cursor-pointer">
+                    <div class="w-11 h-11 rounded-full bg-white flex items-center justify-center group-hover:scale-105 transition shadow-xs">
+                        <i data-lucide="volume-2" class="w-5 h-5 text-[#c83771]"></i>
                     </div>
-                    <span class="text-xs font-bold tracking-widest text-slate-700">お題を聴く</span>
-                    <span id="target-playing-dot" class="hidden absolute top-3 left-3 w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>
+                    <span class="text-xs font-bold tracking-widest text-white">お題を聴く</span>
+                    <span id="target-playing-dot" class="hidden absolute top-3 left-3 w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
                 </button>
 
                 <!-- 右半分：あなたの音コントロールボタン -->
-                <button id="btn-play-guess" class="w-1/2 h-full bg-slate-50 hover:bg-slate-100 text-slate-800 flex flex-col items-center justify-center gap-2 transition duration-200 relative group cursor-pointer">
-                    <div class="w-11 h-11 rounded-full bg-purple-50 border border-purple-200/80 flex items-center justify-center group-hover:scale-105 transition shadow-xs">
-                        <i data-lucide="headphones" class="w-5 h-5 text-purple-600"></i>
+                <button id="btn-play-guess" class="w-1/2 h-full bg-[#3771c8] hover:bg-[#2c60ae] text-white flex flex-col items-center justify-center gap-2 transition duration-200 border-l border-white/20 relative group cursor-pointer">
+                    <div class="w-11 h-11 rounded-full bg-white flex items-center justify-center group-hover:scale-105 transition shadow-xs">
+                        <i data-lucide="headphones" class="w-5 h-5 text-[#3771c8]"></i>
                     </div>
-                    <span class="text-xs font-bold tracking-widest text-slate-700">自分の音を聴く</span>
-                    <span id="guess-playing-dot" class="hidden absolute top-3 right-3 w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
+                    <span class="text-xs font-bold tracking-widest text-white">自分の音を聴く</span>
+                    <span id="guess-playing-dot" class="hidden absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
                 </button>
             </div>
 

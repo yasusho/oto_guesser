@@ -258,8 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      if (btnMinus) setupLongPress(btnMinus, idx, -1);
-      if (btnPlus) setupLongPress(btnPlus, idx, 1);
+      if (btnMinus) setupLongPress(btnMinus, () => updateGuessFreq(idx, state.guessTones[idx].freq - 1));
+      if (btnPlus) setupLongPress(btnPlus, () => updateGuessFreq(idx, state.guessTones[idx].freq + 1));
     });
 
     // Wave buttons event handler
@@ -283,14 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Quick step buttons event handler
+    // Quick step buttons event handler with long-press support
     container.querySelectorAll('.btn-step').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (state.isSubmitted) return;
-        const idx = parseInt(btn.dataset.toneIdx, 10);
-        const step = parseInt(btn.dataset.step, 10);
-        updateGuessFreq(idx, state.guessTones[idx].freq + step);
-      });
+      const idx = parseInt(btn.dataset.toneIdx, 10);
+      const step = parseInt(btn.dataset.step, 10);
+      setupLongPress(btn, () => updateGuessFreq(idx, state.guessTones[idx].freq + step));
     });
   };
 
@@ -309,33 +306,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Long press helper for minus/plus buttons
-  const setupLongPress = (btn, idx, diff) => {
-    let timer = null, interval = null;
-    const adjust = () => {
-      if (state.isSubmitted) return;
-      updateGuessFreq(idx, state.guessTones[idx].freq + diff);
+  // Long press helper for minus/plus & step buttons
+  const setupLongPress = (btn, action) => {
+    let timer = null;
+    let interval = null;
+    let isTouching = false;
+
+    const stop = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (interval) { clearInterval(interval); interval = null; }
     };
 
     const start = (e) => {
-      e.preventDefault();
-      adjust();
+      if (state.isSubmitted) return;
+      if (e.type === 'touchstart') {
+        isTouching = true;
+      } else if (e.type === 'mousedown' && isTouching) {
+        return;
+      }
+      if (e.cancelable) e.preventDefault();
+
+      stop();
+      action();
+
       timer = setTimeout(() => {
-        interval = setInterval(adjust, 50);
-      }, 300);
+        let tick = 0;
+        interval = setInterval(() => {
+          action();
+          tick++;
+          if (tick === 12) {
+            clearInterval(interval);
+            interval = setInterval(action, 30);
+          }
+        }, 60);
+      }, 250);
     };
 
-    const stop = () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
-
-    btn.onmousedown = start;
-    btn.ontouchstart = start;
-    btn.onmouseup = stop;
-    btn.onmouseleave = stop;
-    btn.ontouchend = stop;
-    btn.ontouchcancel = stop;
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('touchstart', start, { passive: false });
+    btn.addEventListener('mouseup', stop);
+    btn.addEventListener('mouseleave', stop);
+    btn.addEventListener('touchend', (e) => {
+      stop();
+      setTimeout(() => { isTouching = false; }, 300);
+    });
+    btn.addEventListener('touchcancel', (e) => {
+      stop();
+      setTimeout(() => { isTouching = false; }, 300);
+    });
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
   };
 
   // Initialize Game Round
@@ -495,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const pairing = evalResult.pairing;
       resultGrid.innerHTML = `
         <div class="flex-1 space-y-2">
-          <p class="text-slate-400 font-bold tracking-widest text-[10px] mb-2">正解値 (TARGET)</p>
+          <p class="text-[#c83771] font-bold tracking-widest text-[10px] mb-2">正解値 (TARGET)</p>
           ${state.targetTones.map((t, i) => `
             <p class="font-mono text-slate-800 text-xs">
               <span class="text-slate-400 font-bold text-[10px] w-10 inline-block">音${i + 1}:</span>
@@ -504,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
           `).join('')}
         </div>
         <div class="flex-1 space-y-2 border-l border-slate-100 pl-6">
-          <p class="text-slate-400 font-bold tracking-widest text-[10px] mb-2">あなたの予想 (YOURS)</p>
+          <p class="text-[#3771c8] font-bold tracking-widest text-[10px] mb-2">あなたの予想 (YOURS)</p>
           ${state.guessTones.map((g, gi) => {
             const pair = pairing.find(p => p.g === gi);
             const targetTone = pair ? state.targetTones[pair.t] : state.targetTones[gi];
