@@ -435,29 +435,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (el.btnCompareBoth) {
     el.btnCompareBoth.addEventListener('click', () => {
-      if (state.isComparing) {
+      if (engine.currentSoundType === 'both' || state.isComparing) {
         stopComparison();
         return;
       }
 
+      stopComparison();
       state.isComparing = true;
-      engine.playChord(state.targetTones, 1.2, 'target');
+
+      const combinedTones = [...state.targetTones, ...state.guessTones];
+      engine.playChord(combinedTones, 2.0, 'both');
+
       if (el.targetPlayingDot) el.targetPlayingDot.classList.remove('hidden');
+      if (el.guessPlayingDot) el.guessPlayingDot.classList.remove('hidden');
 
       state.compareTimer = setTimeout(() => {
-        if (!state.isComparing) return;
-        if (el.targetPlayingDot) el.targetPlayingDot.classList.add('hidden');
-
-        state.compareTimer = setTimeout(() => {
-          if (!state.isComparing) return;
-          engine.playChord(state.guessTones, 1.2, 'guess');
-          if (el.guessPlayingDot) el.guessPlayingDot.classList.remove('hidden');
-
-          state.compareTimer = setTimeout(() => {
-            stopComparison();
-          }, 1200);
-        }, 300);
-      }, 1200);
+        stopComparison();
+      }, 2000);
     });
   }
 
