@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oto Guesser - 音当てゲーム</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Outfit & M PLUS 1p) - Exactly matching Color Guesser -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@300;400;500;700;900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-white text-slate-800 min-h-screen flex flex-col items-center p-4 font-sans selection:bg-slate-200">
+
+    <!-- ヘッダー (単音 / 2音和音) -->
+    <header class="w-full max-w-md py-4 border-b border-slate-100 mb-6">
+        <div class="flex justify-between items-end">
+            <h1 class="text-xl font-black tracking-widest text-slate-900">OTO<br>GUESSER</h1>
+            <div class="flex items-center">
+                <select id="polyphony-select" class="bg-transparent text-xs font-black tracking-widest text-slate-800 cursor-pointer focus:outline-none transition-colors hover:text-slate-500 py-1">
+                    <option value="1">1音 (単音)</option>
+                    <option value="2">2音 (和音)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="w-full max-w-md flex-1 space-y-6">
+
+        <!-- ステータス表示（チャレンジモード） -->
+        <div id="challenge-status" class="hidden flex justify-between items-center text-[11px] font-bold text-slate-400 tracking-widest">
+            <span class="flex items-center gap-1.5">
+                <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                チャレンジ
+            </span>
+            <div class="flex gap-4">
+                <span id="challenge-round">R: 1 / 5</span>
+                <span id="challenge-total-score">SCORE: 0</span>
+            </div>
+        </div>
+
+        <!-- タイマー表示（常時） -->
+        <div class="flex justify-end">
+            <span class="text-sm font-bold text-slate-400 tracking-widest font-mono flex items-center gap-1.5">
+                <i data-lucide="timer" class="w-4 h-4"></i>
+                <span id="timer-display">0.0s</span>
+            </span>
+        </div>
+
+        <!-- スプリット UI (TARGET vs YOURS) -->
+        <div class="space-y-1.5">
+            <div class="flex justify-between px-2 text-[10px] font-bold text-slate-400 tracking-widest">
+                <span id="target-label-title">TARGET (お題の音)</span>
+                <span id="yours-label-title">YOURS (あなたの音)</span>
+            </div>
+            <div class="relative w-full aspect-[2/1] rounded-sm shadow-sm flex overflow-hidden ring-1 ring-slate-200 bg-slate-50">
+                <!-- 左半分：お題の音コントロールボタン -->
+                <button id="btn-play-target" class="w-1/2 h-full bg-slate-50 hover:bg-slate-100 text-slate-800 flex flex-col items-center justify-center gap-2 transition duration-200 border-r border-slate-200 relative group cursor-pointer">
+                    <div class="w-11 h-11 rounded-full bg-sky-50 border border-sky-200/80 flex items-center justify-center group-hover:scale-105 transition shadow-xs">
+                        <i data-lucide="volume-2" class="w-5 h-5 text-sky-600"></i>
+                    </div>
+                    <span class="text-xs font-bold tracking-widest text-slate-700">お題を聴く</span>
+                    <span id="target-playing-dot" class="hidden absolute top-3 left-3 w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>
+                </button>
+
+                <!-- 右半分：あなたの音コントロールボタン -->
+                <button id="btn-play-guess" class="w-1/2 h-full bg-slate-50 hover:bg-slate-100 text-slate-800 flex flex-col items-center justify-center gap-2 transition duration-200 relative group cursor-pointer">
+                    <div class="w-11 h-11 rounded-full bg-purple-50 border border-purple-200/80 flex items-center justify-center group-hover:scale-105 transition shadow-xs">
+                        <i data-lucide="headphones" class="w-5 h-5 text-purple-600"></i>
+                    </div>
+                    <span class="text-xs font-bold tracking-widest text-slate-700">自分の音を聴く</span>
+                    <span id="guess-playing-dot" class="hidden absolute top-3 right-3 w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
+                </button>
+            </div>
+
+            <!-- 交互比較ボタン -->
+            <button id="btn-compare-both" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-2.5 px-3 rounded-sm transition duration-200 text-xs tracking-widest flex items-center justify-center gap-2 border border-slate-200 shadow-sm">
+                <i data-lucide="repeat" class="w-3.5 h-3.5"></i>
+                お題と自分の音を交互に聴く
+            </button>
+        </div>
+
+        <!-- 音質・音階コントロール群 (1〜2音分を動的生成) -->
+        <div id="tone-controls-container" class="space-y-6 pt-2"></div>
+
+        <!-- アクションエリア（常時表示・ボタンスワップ） -->
+        <div id="action-panel" class="pt-6">
+            <button id="btn-submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-4 rounded-sm transition duration-200 shadow-sm flex items-center justify-center gap-2 text-sm tracking-widest">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                これで回答する！
+            </button>
+            <button id="btn-next" class="hidden w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-4 rounded-sm transition duration-200 flex items-center justify-center gap-2 text-sm shadow-sm tracking-widest">
+                <span id="next-text">次の音へ</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- 結果発表エリア（ボタンの下に展開、Color Guesser 準拠） -->
+        <div id="result-panel" class="hidden space-y-4 mt-6 pt-6 border-t border-slate-100">
+            <div class="text-center space-y-2">
+                <h2 id="evaluation-text" class="text-7xl font-black text-slate-800">S</h2>
+                <div class="flex items-center justify-center gap-4 text-[11px] font-bold text-slate-400 tracking-widest">
+                    <p>スコア: <span id="score-display" class="font-mono text-slate-800 text-sm">95</span></p>
+                    <span class="text-slate-200">|</span>
+                    <p class="flex items-center gap-1"><i data-lucide="timer" class="w-3 h-3"></i> <span id="result-time-display" class="font-mono text-slate-800 text-sm">0.0s</span></p>
+                </div>
+            </div>
+
+            <!-- 答えとの詳細比較 (動的生成) -->
+            <div id="result-grid-container" class="flex justify-between gap-4 text-xs border-t border-b border-slate-100 py-6"></div>
+
+            <!-- フリープレイ用シェアボタン -->
+            <div id="free-share-container" class="flex gap-2 w-full hidden">
+                <button id="btn-share-x-free" class="flex-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-sm transition duration-200 text-[11px] flex items-center justify-center gap-2 tracking-widest">
+                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+                    Xでシェア
+                </button>
+                <button id="btn-share-free" class="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3 rounded-sm transition duration-200 text-[11px] flex items-center justify-center gap-2 tracking-widest border border-slate-200">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    コピー
+                </button>
+            </div>
+        </div>
+
+        <!-- モード切替 -->
+        <div class="flex justify-center gap-8 text-[11px] tracking-widest pt-12 pb-8">
+            <button id="mode-free" class="font-bold text-slate-900 border-b-2 border-slate-900 pb-1.5 transition">
+                フリープレイ
+            </button>
+            <button id="mode-challenge" class="font-bold text-slate-400 hover:text-slate-600 border-b-2 border-transparent pb-1.5 transition">
+                5問連続チャレンジ
+            </button>
+        </div>
+    </main>
+
+    <!-- チャレンジ終了サマリーモーダル -->
+    <div id="modal-summary" class="fixed inset-0 bg-white flex items-start justify-center p-6 z-50 hidden overflow-y-auto">
+        <div class="w-full max-w-sm py-8 text-center space-y-8">
+
+            <!-- ヘッダー -->
+            <div class="space-y-1 border-b border-slate-100 pb-6">
+                <p class="text-[10px] font-bold text-slate-400 tracking-widest">CHALLENGE RESULT</p>
+                <h3 class="text-sm font-black tracking-widest text-slate-900">OTO GUESSER</h3>
+            </div>
+
+            <!-- スコア -->
+            <div class="space-y-1">
+                <p class="text-[10px] text-slate-400 tracking-widest font-bold">総合スコア</p>
+                <h4 id="summary-total-score" class="text-6xl font-black text-slate-800">450 <span class="text-2xl text-slate-300 font-medium">/500</span></h4>
+                <p class="text-[11px] font-bold text-slate-400 tracking-widest flex items-center justify-center gap-1 pt-1">
+                    <i data-lucide="timer" class="w-3 h-3"></i> <span id="summary-total-time" class="font-mono">0.0s</span>
+                </p>
+                <p id="summary-feedback" class="text-[11px] font-bold text-slate-500 pt-1 tracking-widest">素晴らしい絶対音感です！</p>
+            </div>
+
+            <!-- 履歴 -->
+            <div id="summary-history" class="space-y-0 text-left border-t border-slate-100 pt-2">
+                <!-- 履歴を動的生成 -->
+            </div>
+
+            <!-- ボタン -->
+            <div class="flex flex-col gap-2 border-t border-slate-100 pt-6">
+                <button id="btn-share-x" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 rounded-sm transition duration-200 text-xs flex items-center justify-center gap-2 tracking-widest">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+                    X (Twitter) でシェア
+                </button>
+                <button id="btn-share" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-4 border border-slate-200 rounded-sm transition duration-200 text-xs flex items-center justify-center gap-2 tracking-widest">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    コピー
+                </button>
+                <button id="btn-restart" class="w-full bg-transparent text-slate-400 hover:text-slate-800 font-bold py-3 rounded-sm transition duration-200 text-xs tracking-widest">
+                    もう一度挑戦する
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="fixed bottom-6 bg-slate-900 text-white px-5 py-3 rounded-sm shadow-lg flex items-center gap-2 text-[11px] tracking-widest font-bold translate-y-10 opacity-0 pointer-events-none transition-all duration-300 z-50">
+        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+        <span id="toast-message">コピーしました</span>
+    </div>
+
+    <!-- Custom Scripts -->
+    <script src="audio.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

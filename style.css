@@ -1,0 +1,85 @@
+/* ==========================================================================
+   Oto Guesser Custom Styles (Unified with Color Guesser)
+   ========================================================================== */
+
+/* Font Family Enforcement - Exactly matching Color Guesser */
+body, .font-sans, input, select, button {
+    font-family: 'Outfit', 'M PLUS 1p', -apple-system, sans-serif !important;
+}
+
+header h1 {
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    line-height: 0.95;
+}
+
+/* Custom Range Slider Thumb - Exactly matching Color Guesser */
+input[type="range"].param-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 12px;
+        height: 20px;
+        border-radius: 3px;
+        background: #f8fafc;
+        border: 1px solid #64748b;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: background 0.1s;
+
+        &:hover {
+            background: #e2e8f0;
+        }
+    }
+
+    &::-moz-range-thumb {
+        width: 12px;
+        height: 20px;
+        border-radius: 3px;
+        background: #f8fafc;
+        border: 1px solid #64748b;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: background 0.1s;
+
+        &:hover {
+            background: #e2e8f0;
+        }
+    }
+}
+
+/* Waveform Select Buttons - Color Guesser button style */
+.wave-btn {
+    border-radius: 0.125rem; /* rounded-sm */
+    transition: all 0.15s ease;
+}
+
+.wave-btn:hover {
+    border-color: #94a3b8; /* slate-400 */
+    background-color: #f8fafc; /* slate-50 */
+}
+
+.wave-btn.active {
+    background-color: #0f172a !important; /* slate-900 */
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+}
+
+.wave-btn.active svg {
+    color: #ffffff !important;
+}
+
+.wave-btn:not(.active) svg {
+    color: #475569; /* slate-600 */
+}
+
+/* SS Grade Rainbow Gradient */
+.rank-ss {
+    background: linear-gradient(135deg, #ef4444, #f59e0b, #eab308, #10b981, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
