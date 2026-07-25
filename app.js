@@ -639,8 +639,50 @@ document.addEventListener('DOMContentLoaded', () => {
   if (el.modeFree) el.modeFree.addEventListener('click', () => switchMode('free'));
   if (el.modeChallenge) el.modeChallenge.addEventListener('click', () => switchMode('challenge'));
 
-  // --- Share Functions (X Twitter & Copy) ---
+  // --- Share Functions (X Twitter & Copy with URL parameters) ---
+  const encodeShareData = data =>
+    btoa(encodeURIComponent(JSON.stringify(data)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+  const decodeShareData = enc => {
+    const b64 = enc.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4;
+    const str = atob(pad ? b64 + '='.repeat(4 - pad) : b64);
+    return JSON.parse(decodeURIComponent(str));
+  };
+
+  const getBaseUrl = () => location.href.replace(/#.*$/, '');
+
+  const getShareUrl = (isChallenge = false) => {
+    if (isChallenge) {
+      const data = {
+        v: 1,
+        mode: 'challenge',
+        polyphony: state.polyphonyCount,
+        totalScore: state.totalScore,
+        totalTime: state.history.reduce((acc, h) => acc + h.time, 0),
+        history: state.history
+      };
+      return `${getBaseUrl()}#r=${encodeShareData(data)}`;
+    } else {
+      const data = {
+        v: 1,
+        mode: 'free',
+        polyphony: state.polyphonyCount,
+        targetTones: state.targetTones,
+        guessTones: state.guessTones,
+        score: state.currentScore,
+        eval: state.currentEvaluation,
+        time: state.currentTime
+      };
+      return `${getBaseUrl()}#r=${encodeShareData(data)}`;
+    }
+  };
+
   const generateShareText = (isChallenge = false) => {
+    const shareUrl = getShareUrl(isChallenge);
     if (isChallenge) {
       const totalTimeSec = (state.history.reduce((acc, h) => acc + h.time, 0) / 1000).toFixed(1);
       const blocks = state.history.map(h => {
@@ -652,20 +694,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return `🎵 Oto Guesser【5問チャレンジ (${state.polyphonyCount === 1 ? '単音' : '2音和音'})】結果\n` +
              `総合スコア: ${state.totalScore}/500 (${totalTimeSec}s)\n` +
-             `${blocks}\n` +
+             `${blocks}\n\n` +
+             `${shareUrl}\n` +
              `#OtoGuesser #音当てゲーム`;
     } else {
       const targetsStr = state.targetTones.map(t => `${t.freq}Hz(${waveNames[t.wave]})`).join(', ');
       return `🎵 Oto Guesser【フリープレイ (${state.polyphonyCount === 1 ? '単音' : '2音和音'})】\n` +
              `お題: ${targetsStr}\n` +
-             `スコア: ${state.currentScore}点 [Rank ${state.currentEvaluation}]\n` +
+             `スコア: ${state.currentScore}点 [Rank ${state.currentEvaluation}]\n\n` +
+             `${shareUrl}\n` +
              `#OtoGuesser #音当てゲーム`;
     }
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
-      showToast('結果をクリップボードにコピーしました！');
+      showToast('結果URLをクリップボードにコピーしました！');
     }).catch(() => {
       showToast('コピーに失敗しました');
     });
@@ -676,12 +720,162 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open(url, '_blank');
   };
 
+  // --- Shared Result Modal rendering ---
+  const showSharedResult = (data) => {
+    const modal = el.modalSharedResult;
+    const content = el.sharedResultContent;
+    if (!modal || !content) return;
+
+    if (data.mode === 'free') {
+      const evals = [
+        { min: 98, txt: 'SS', color: 'rank-ss' },
+        { min: 90, txt: 'S', color: 'text-emerald-500 font-black' },
+        { min: 80, txt: 'A', color: 'text-sky-500 font-black' },
+        { min: 65, txt: 'B', color: 'text-indigo-500 font-bold' },
+        { min: 50, txt: 'C', color: 'text-purple-500 font-bold' },
+        { min: 0, txt: 'D', color: 'text-slate-400 font-bold' }
+      ];
+      const evalItem = evals.find(e => data.score >= e.min) || { txt: data.eval, color: 'text-slate-800' };
+
+      content.innerHTML = `
+        <div class="text-center space-y-2">
+          <h2 class="text-7xl font-black ${evalItem.color}">${data.eval}</h2>
+          <div class="flex items-center justify-center gap-4 text-[11px] font-bold text-slate-400 tracking-widest">
+            <p>スコア: <span class="font-mono text-slate-800 text-sm">${data.score}</span></p>
+            <span class="text-slate-200">|</span>
+            <p class="flex items-center gap-1"><i data-lucide="timer" class="w-3 h-3"></i> <span class="font-mono text-slate-800 text-sm">${(data.time / 1000).toFixed(1)}s</span></p>
+          </div>
+          <p class="text-[10px] font-bold text-slate-400 tracking-wider pt-1">${data.polyphony === 1 ? '単音' : '2音和音'} モード</p>
+        </div>
+
+        <div class="space-y-1.5 pt-2">
+          <div class="flex justify-between px-2 text-[10px] font-bold tracking-widest">
+            <span class="text-[#c83771]">TARGET (お題の音)</span>
+            <span class="text-[#3771c8]">YOURS (予想の音)</span>
+          </div>
+          <div class="relative w-full aspect-[2/1] rounded-sm shadow-sm flex overflow-hidden ring-1 ring-slate-200">
+            <button id="btn-shared-play-target" class="w-1/2 h-full bg-[#c83771] hover:bg-[#b42d62] text-white flex flex-col items-center justify-center gap-2 transition duration-200 relative cursor-pointer">
+              <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs">
+                <i data-lucide="volume-2" class="w-5 h-5 text-[#c83771]"></i>
+              </div>
+              <span class="text-xs font-bold tracking-widest">お題を聴く</span>
+            </button>
+            <button id="btn-shared-play-guess" class="w-1/2 h-full bg-[#3771c8] hover:bg-[#2c60ae] text-white flex flex-col items-center justify-center gap-2 transition duration-200 border-l border-white/20 relative cursor-pointer">
+              <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs">
+                <i data-lucide="headphones" class="w-5 h-5 text-[#3771c8]"></i>
+              </div>
+              <span class="text-xs font-bold tracking-widest">予想を聴く</span>
+            </button>
+          </div>
+          <button id="btn-shared-play-both" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-2.5 px-3 rounded-sm transition duration-200 text-xs tracking-widest flex items-center justify-center gap-2 border border-slate-200 shadow-sm cursor-pointer">
+            <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+            同時に聴く
+          </button>
+        </div>
+
+        <div class="flex justify-between gap-4 text-xs border-t border-b border-slate-100 py-4 mt-4">
+          <div class="flex-1 space-y-1.5">
+            <p class="text-[#c83771] font-bold tracking-widest text-[10px] mb-2">正解値 (TARGET)</p>
+            ${(data.targetTones || []).map((t, i) => `
+              <p class="font-mono text-slate-800 text-xs">
+                <span class="text-slate-400 font-bold text-[10px] w-8 inline-block">音${i + 1}:</span>
+                <span class="font-bold">${t.freq} Hz</span> <span class="text-slate-500">(${waveNames[t.wave] || t.wave})</span>
+              </p>
+            `).join('')}
+          </div>
+          <div class="flex-1 space-y-1.5 border-l border-slate-100 pl-4">
+            <p class="text-[#3771c8] font-bold tracking-widest text-[10px] mb-2">予想値 (YOURS)</p>
+            ${(data.guessTones || []).map((g, i) => `
+              <p class="font-mono text-slate-800 text-xs">
+                <span class="text-slate-400 font-bold text-[10px] w-8 inline-block">音${i + 1}:</span>
+                <span class="font-bold">${g.freq} Hz</span> <span class="text-slate-500">(${waveNames[g.wave] || g.wave})</span>
+              </p>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const btnT = document.getElementById('btn-shared-play-target');
+        const btnG = document.getElementById('btn-shared-play-guess');
+        const btnB = document.getElementById('btn-shared-play-both');
+
+        if (btnT) btnT.addEventListener('click', () => engine.playChord(data.targetTones, 2.0, 'target'));
+        if (btnG) btnG.addEventListener('click', () => engine.playChord(data.guessTones, 2.0, 'guess'));
+        if (btnB) btnB.addEventListener('click', () => engine.playChord([...data.targetTones, ...data.guessTones], 2.0, 'both'));
+      }, 0);
+    } else if (data.mode === 'challenge') {
+      const feedback = data.totalScore >= 450
+        ? "神がかった絶対音感です！"
+        : data.totalScore >= 350
+        ? "かなり優秀な絶対音感を持っていますね！"
+        : "あと少し！繰り返しチャレンジしてみましょう！";
+
+      content.innerHTML = `
+        <div class="text-center space-y-2">
+          <p class="text-[10px] text-slate-400 tracking-widest font-bold">総合スコア</p>
+          <h4 class="text-6xl font-black text-slate-800">${data.totalScore} <span class="text-2xl text-slate-300 font-medium">/500</span></h4>
+          <p class="text-[11px] font-bold text-slate-400 tracking-widest flex items-center justify-center gap-1 pt-1">
+            <i data-lucide="timer" class="w-3 h-3"></i> <span class="font-mono">${(data.totalTime / 1000).toFixed(1)}s</span>
+          </p>
+          <p class="text-[11px] font-bold text-slate-500 pt-1 tracking-widest">${feedback}</p>
+        </div>
+
+        <div class="space-y-0 text-left border-t border-slate-100 pt-2">
+          ${(data.history || []).map(item => `
+            <div class="flex flex-col p-2.5 border-b border-slate-100 last:border-0 gap-1">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 flex-1">
+                  <span class="font-bold w-6 text-slate-400 text-xs">R${item.round}</span>
+                  <span class="text-xs font-bold text-slate-500">${item.polyphony === 1 ? '単音' : '2音和音'}</span>
+                  <div class="text-[10px] font-bold text-slate-400 tracking-wider ml-1">
+                    ${(item.time / 1000).toFixed(1)}s
+                  </div>
+                </div>
+                <span class="font-mono text-slate-800 text-sm font-bold text-right">${item.score} <span class="text-[10px] text-slate-400">(${item.eval})</span></span>
+              </div>
+              <div class="text-[10px] pl-8 text-slate-500 font-mono space-y-0.5">
+                ${(item.targetTones || []).map((t, i) => `
+                  <div>お題${i + 1}: ${t.freq}Hz(${waveNames[t.wave] || t.wave}) → 予想: ${item.guessTones[i].freq}Hz(${waveNames[item.guessTones[i].wave] || item.guessTones[i].wave})</div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    lucide.createIcons();
+    modal.classList.remove('hidden');
+  };
+
+  const checkSharedResult = () => {
+    const hash = location.hash;
+    if (hash.startsWith('#r=')) {
+      try {
+        const rawData = decodeShareData(hash.substring(3));
+        showSharedResult(rawData);
+      } catch (e) {
+        console.error('Failed to parse shared result:', e);
+      }
+    }
+  };
+
+  if (el.btnPlayMyself) {
+    el.btnPlayMyself.addEventListener('click', () => {
+      if (el.modalSharedResult) el.modalSharedResult.classList.add('hidden');
+      history.replaceState(null, '', getBaseUrl());
+      initGame(true);
+    });
+  }
+
   if (el.btnShareFree) el.btnShareFree.addEventListener('click', () => copyToClipboard(generateShareText(false)));
   if (el.btnShareXFree) el.btnShareXFree.addEventListener('click', () => openXShare(generateShareText(false)));
 
   if (el.btnShare) el.btnShare.addEventListener('click', () => copyToClipboard(generateShareText(true)));
   if (el.btnShareX) el.btnShareX.addEventListener('click', () => openXShare(generateShareText(true)));
 
-  // Start First Game
+  // Start Game & Check Shared Result in URL hash
   initGame(true);
+  checkSharedResult();
 });

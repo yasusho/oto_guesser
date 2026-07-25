@@ -194,6 +194,27 @@
         <span id="toast-message">コピーしました</span>
     </div>
 
+    <!-- シェア結果表示モーダル -->
+    <div id="modal-shared-result" class="fixed inset-0 bg-white flex items-start justify-center p-6 z-50 hidden overflow-y-auto">
+        <div class="w-full max-w-sm py-8 text-center space-y-8">
+            <!-- ヘッダー -->
+            <div class="space-y-1 border-b border-slate-100 pb-6">
+                <p class="text-[10px] font-bold text-slate-400 tracking-widest">SHARED RESULT</p>
+                <h3 class="text-sm font-black tracking-widest text-slate-900">OTO GUESSER</h3>
+            </div>
+
+            <div id="shared-result-content" class="text-left space-y-6"></div>
+
+            <!-- ボタン -->
+            <div class="border-t border-slate-100 pt-6">
+                <button id="btn-play-myself" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-sm transition duration-200 text-xs tracking-widest flex items-center justify-center gap-2 cursor-pointer">
+                    <i data-lucide="play" class="w-4 h-4"></i>
+                    自分もプレイする
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Scripts -->
     <script src="audio.js"></script>
     <script src="app.js"></script>
