@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
             <button id="btn-shared-play-guess" class="w-1/2 h-full bg-[#3771c8] hover:bg-[#2c60ae] text-white flex flex-col items-center justify-center gap-2 transition duration-200 border-l border-white/20 relative cursor-pointer">
               <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs">
-                <i data-lucide="headphones" class="w-5 h-5 text-[#3771c8]"></i>
+                <i data-lucide="volume-2" class="w-5 h-5 text-[#3771c8]"></i>
               </div>
               <span class="text-xs font-bold tracking-widest">予想を聴く</span>
             </button>
